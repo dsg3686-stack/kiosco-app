@@ -52,3 +52,12 @@ app.post('/guardar-producto', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
+app.get('/borrar-todo', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM productos');
+        res.send('¡Listo! Todos los productos de prueba fueron borrados.');
+    } catch (err) {
+        console.error(err);
+        res.send('Hubo un error al borrar los datos.');
+    }
+});
