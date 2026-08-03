@@ -10,7 +10,6 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// Crear la tabla productos automáticamente al iniciar
 pool.query(`
   CREATE TABLE IF NOT EXISTS productos (
     id SERIAL PRIMARY KEY,
@@ -33,8 +32,8 @@ app.post('/guardar-producto', async (req, res) => {
     );
     res.send('¡Producto guardado con éxito en la base de datos!');
   } catch (err) {
-    console.error(err);
-    res.send('Error al guardar el producto');
+    console.error("DETALLE DEL ERROR:", err);
+    res.send('Error al guardar el producto: ' + err.message);
   }
 });
 
