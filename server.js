@@ -1,5 +1,6 @@
 const express = require('express');
 const { Pool } = require('pg');
+const path = require('path');
 const app = express();
 
 app.use(express.urlencoded({ extended: true }));
@@ -7,6 +8,11 @@ app.use(express.urlencoded({ extended: true }));
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
+});
+
+// Esto muestra tu formulario cuando entrás a la página principal
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.post('/guardar-producto', async (req, res) => {
