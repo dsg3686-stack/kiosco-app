@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Ventas</title>
+    <title>Kiosco - Cuenta Corriente / Fiados</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -21,10 +21,10 @@
             color: var(--dark);
         }
         .container {
-            max-width: 600px;
+            max-width: 650px;
             margin: 0 auto;
         }
-        h2 { text-align: center; }
+        h2 { text-align: center; color: #1e3a8a; }
         .card {
             background: var(--card);
             padding: 15px;
@@ -66,13 +66,12 @@
             margin-top: 15px;
         }
         button:hover { background-color: #1d4ed8; }
-        .btn-pay { background-color: var(--success); width: auto; padding: 5px 10px; font-size: 12px; margin-top: 0;}
-        .btn-delete { background-color: var(--danger); width: auto; padding: 5px 10px; font-size: 12px; margin-top: 0;}
-        .btn-add-product { background-color: var(--dark); margin-top: 24px; padding: 10px;}
+        .btn-pay { background-color: var(--success); width: auto; padding: 6px 12px; font-size: 13px; margin-top: 0;}
+        .btn-delete { background-color: var(--danger); width: auto; padding: 4px 8px; font-size: 12px; margin-top: 0;}
         
         .dashboard {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 10px;
             text-align: center;
         }
@@ -83,14 +82,10 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         .stat-box h3 { margin: 0; font-size: 14px; color: #6b7280; }
-        .stat-box p { margin: 5px 0 0 0; font-size: 20px; font-weight: bold; }
-        .text-success { color: var(--success); }
-        .text-danger { color: var(--danger); }
+        .stat-box p { margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: var(--danger); }
 
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
         th, td { text-align: left; padding: 8px; border-bottom: 1px solid #e5e7eb; }
-        .badge-deuda { background: #fee2e2; color: #991b1b; padding: 3px 6px; border-radius: 4px; font-size: 12px;}
-        .badge-pagado { background: #dcfce3; color: #166534; padding: 3px 6px; border-radius: 4px; font-size: 12px;}
         
         details {
             background: #f8fafc;
@@ -103,288 +98,265 @@
             cursor: pointer;
             list-style: none;
         }
+        .cliente-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .cliente-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f3f4f6;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🥤 Mis Ventas</h2>
+    <h2>🏪 Kiosco - Cuentas Corrientes</h2>
 
     <!-- Resumen -->
-    <div class="dashboard" id="dashboard">
+    <div class="dashboard">
         <div class="stat-box">
-            <h3>Ganancia Total</h3>
-            <p class="text-success" id="totalProfit">$0</p>
-        </div>
-        <div class="stat-box">
-            <h3>Plata en la Calle</h3>
-            <p class="text-danger" id="totalDebt">$0</p>
+            <h3>Total en la Calle (Fiados acumulados)</h3>
+            <p id="totalDebt">$0.00</p>
         </div>
     </div>
 
-    <!-- Gestión de Productos (Desplegable) -->
+    <!-- Administrar Productos -->
     <div class="card" style="margin-top: 15px;">
         <details>
             <summary>⚙️ Administrar mis productos</summary>
-            
             <form id="productForm" class="grid-3" style="margin-top: 10px; align-items: end;">
                 <div>
                     <label>Nombre</label>
-                    <input type="text" id="newProdName" placeholder="Ej: Empanada" required>
+                    <input type="text" id="newProdName" placeholder="Ej: Sándwich" required>
                 </div>
                 <div>
                     <label>Costo</label>
-                    <input type="number" step="0.01" id="newProdCost" placeholder="Ej: 300" required>
+                    <input type="number" step="0.01" id="newProdCost" placeholder="Ej: 500" required>
                 </div>
                 <div>
                     <label>Precio Venta</label>
-                    <input type="number" step="0.01" id="newProdPrice" placeholder="Ej: 500" required>
+                    <input type="number" step="0.01" id="newProdPrice" placeholder="Ej: 1000" required>
                 </div>
             </form>
-            <button type="submit" form="productForm" class="btn-add-product">+ Agregar Producto</button>
+            <button type="submit" form="productForm" style="background-color: var(--dark);">+ Agregar Producto</button>
 
-            <div style="overflow-x: auto; margin-top: 15px;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Producto</th>
-                            <th>Costo / Venta</th>
-                            <th>Borrar</th>
-                        </tr>
-                    </thead>
-                    <tbody id="productsList">
-                        <!-- Productos cargados acá -->
-                    </tbody>
-                </table>
-            </div>
+            <table style="margin-top: 15px;">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Precio</th>
+                        <th>Borrar</th>
+                    </tr>
+                </thead>
+                <tbody id="productsTableBody"></tbody>
+            </table>
         </details>
     </div>
 
-    <!-- Formulario de Venta -->
+    <!-- Anotar Consumo Diario -->
     <div class="card">
-        <h3 style="margin-top: 0;">Nueva Venta</h3>
-        <form id="saleForm">
-            <label>Producto</label>
-            <select id="productSelect" required>
-                <!-- Opciones se cargan automáticamente -->
-            </select>
+        <h3 style="margin-top: 0;">📝 Anotar Consumo Diario (Fiado)</h3>
+        <form id="consumeForm">
+            <label>Nombre del Comprador (Cliente)</label>
+            <input type="text" id="buyerName" placeholder="Ej: Cholo, Ferri, Bicho..." required>
 
             <div class="grid-2">
+                <div>
+                    <label>Producto</label>
+                    <select id="productSelect" required></select>
+                </div>
                 <div>
                     <label>Cantidad</label>
                     <input type="number" id="qty" value="1" min="1" required>
                 </div>
-                <div>
-                    <label>Estado</label>
-                    <select id="status">
-                        <option value="debe">Me debe (Fiado)</option>
-                        <option value="pagado">Ya pagó</option>
-                    </select>
-                </div>
             </div>
 
-            <label>Nombre del comprador (Como en el grupo de WhatsApp)</label>
-            <input type="text" id="buyer" placeholder="Ej: Ferri, Cholo, Bicho..." required>
-
-            <button type="submit">Registrar Venta</button>
+            <button type="submit">Anotar en la Cuenta</button>
         </form>
     </div>
 
-    <!-- Lista de Ventas -->
+    <!-- Cuentas por Cliente (Resumen del Mes) -->
     <div class="card">
-        <h3 style="margin-top: 0;">Registro Histórico</h3>
-        <div style="overflow-x: auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Cliente</th>
-                        <th>Detalle</th>
-                        <th>Estado</th>
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-                <tbody id="salesList">
-                    <!-- Las ventas aparecen acá -->
-                </tbody>
-            </table>
+        <h3 style="margin-top: 0;">👥 Cuentas de Clientes (Cobro a Fin de Mes)</h3>
+        <div id="clientesContainer">
+            <p style="text-align: center; color: #6b7280;">No hay deudas registradas.</p>
         </div>
     </div>
 </div>
 
 <script>
-    // 1. BASE DE DATOS DE PRODUCTOS INICIALES
-    const defaultProducts = [
-        { id: '1', name: 'Coca-Cola', cost: 1266.66, price: 2500 },
-        { id: '2', name: 'Fanta/Sprite', cost: 1066.66, price: 2300 },
-        { id: '3', name: 'Agua saborizada', cost: 659, price: 1500 },
-        { id: '4', name: 'Alfajor', cost: 290, price: 600 },
-        { id: '5', name: 'Pizza', cost: 0, price: 0 },
-        { id: '6', name: 'Mila de carne', cost: 0, price: 0 },
-        { id: '7', name: 'Mila de pollo', cost: 0, price: 0 },
-        { id: '8', name: 'Sándwich de Miga', cost: 0, price: 0 },
-        { id: '9', name: 'Monster', cost: 0, price: 0 },
-        { id: '10', name: 'Jugo Placer', cost: 0, price: 0 },
-        { id: '11', name: 'Chicles', cost: 0, price: 0 },
-        { id: '12', name: 'Diversión', cost: 0, price: 0 }
-    ];
+    let productos = [];
+    let cuentas = [];
 
-    // Cargar datos guardados en el navegador
-    let products = JSON.parse(localStorage.getItem('ventasAppProductos')) || defaultProducts;
-    let sales = JSON.parse(localStorage.getItem('ventasAppDatos')) || [];
-
-    // Referencias a la interfaz
-    const saleForm = document.getElementById('saleForm');
-    const productForm = document.getElementById('productForm');
-    
-    // --- LÓGICA DE PRODUCTOS ---
-    
-    // Agregar un producto nuevo
-    productForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const newProduct = {
-            id: Date.now().toString(),
-            name: document.getElementById('newProdName').value,
-            cost: parseFloat(document.getElementById('newProdCost').value),
-            price: parseFloat(document.getElementById('newProdPrice').value)
-        };
-
-        products.push(newProduct);
-        saveProductsData();
-        renderProducts();
-        productForm.reset();
-        alert("¡Producto agregado con éxito!");
-    });
-
-    // Borrar un producto
-    function deleteProduct(id) {
-        if(confirm('¿Seguro que querés borrar este producto de la lista?')) {
-            products = products.filter(p => p.id !== id);
-            saveProductsData();
-            renderProducts();
+    async function cargarDatos() {
+        try {
+            const res = await fetch('/api/datos');
+            const data = await res.json();
+            productos = data.productos;
+            cuentas = data.cuentas;
+            renderizarTodo();
+        } catch (err) {
+            console.error("Error al cargar datos:", err);
         }
     }
 
-    function saveProductsData() {
-        localStorage.setItem('ventasAppProductos', JSON.stringify(products));
+    // Agregar Producto
+    document.getElementById('productForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nombre = document.getElementById('newProdName').value;
+        const costo = document.getElementById('newProdCost').value;
+        const precio = document.getElementById('newProdPrice').value;
+
+        await fetch('/api/productos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre, costo, precio })
+        });
+
+        document.getElementById('productForm').reset();
+        cargarDatos();
+    });
+
+    async function borrarProducto(id) {
+        if (confirm('¿Seguro querés borrar este producto?')) {
+            await fetch(`/api/productos/${id}`, { method: 'DELETE' });
+            cargarDatos();
+        }
     }
 
-    // Dibujar la lista desplegable y la tabla de productos
-    function renderProducts() {
-        const select = document.getElementById('productSelect');
-        const list = document.getElementById('productsList');
-        
-        select.innerHTML = '';
-        list.innerHTML = '';
+    // Registrar Consumo Diario
+    document.getElementById('consumeForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const cliente = document.getElementById('buyerName').value.trim();
+        const prodId = document.getElementById('productSelect').value;
+        const qty = parseInt(document.getElementById('qty').value);
 
-        products.forEach(p => {
-            // Llenar el combo de ventas
-            select.innerHTML += `<option value="${p.id}">${p.name} (Venta: $${p.price})</option>`;
-            
-            // Llenar la tabla de administración
-            list.innerHTML += `
+        const producto = productos.find(p => p.id == prodId);
+        if (!producto) return;
+
+        const montoTotal = producto.precio * qty;
+        const detalle = `${qty}x ${producto.nombre}`;
+
+        await fetch('/api/cuentas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cliente, detalle, monto: montoTotal })
+        });
+
+        document.getElementById('consumeForm').reset();
+        document.getElementById('qty').value = 1;
+        cargarDatos();
+    });
+
+    // Pagar la cuenta total de un cliente
+    async function cobrarCliente(cliente) {
+        if (confirm(`¿Confirmás que ${cliente} pagó todo el mes? Se cerrará su cuenta.`)) {
+            await fetch(`/api/cuentas/pagar/${encodeURIComponent(cliente)}`, { method: 'PUT' });
+            cargarDatos();
+        }
+    }
+
+    // Borrar un item suelto
+    async function borrarItem(id) {
+        if (confirm('¿Borrar este consumo individual?')) {
+            await fetch(`/api/cuentas/${id}`, { method: 'DELETE' });
+            cargarDatos();
+        }
+    }
+
+    function renderizarTodo() {
+        // 1. Renderizar productos en select y tabla
+        const select = document.getElementById('productSelect');
+        const pTable = document.getElementById('productsTableBody');
+        select.innerHTML = '';
+        pTable.innerHTML = '';
+
+        productos.forEach(p => {
+            select.innerHTML += `<option value="${p.id}">${p.name || p.nombre} - $${p.precio}</option>`;
+            pTable.innerHTML += `
                 <tr>
-                    <td><strong>${p.name}</strong></td>
-                    <td>Costo: $${p.cost}<br>Venta: $${p.price}</td>
-                    <td><button class="btn-delete" onclick="deleteProduct('${p.id}')">🗑️</button></td>
+                    <td>${p.nombre}</td>
+                    <td>$${p.precio}</td>
+                    <td><button class="btn-delete" onclick="borrarProducto(${p.id})">🗑️</button></td>
                 </tr>
             `;
         });
-    }
 
-    // --- LÓGICA DE VENTAS ---
-    
-    // Registrar Venta
-    saleForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const prodId = document.getElementById('productSelect').value;
-        const qty = parseInt(document.getElementById('qty').value);
-        const buyer = document.getElementById('buyer').value;
-        const status = document.getElementById('status').value;
-        
-        const product = products.find(p => p.id === prodId);
-        const totalVenta = product.price * qty;
-        const ganancia = (product.price - product.cost) * qty;
+        // 2. Filtrar deudas pendientes (no pagadas)
+        const pendientes = cuentas.filter(c => !c.pagado);
 
-        const newSale = {
-            id: Date.now(),
-            date: new Date().toLocaleDateString(),
-            buyer: buyer,
-            productName: product.name,
-            qty: qty,
-            total: totalVenta,
-            profit: ganancia,
-            isPaid: status === 'pagado'
-        };
+        // Calcular total en la calle
+        const totalCalle = pendientes.reduce((acc, curr) => acc + parseFloat(curr.monto), 0);
+        document.getElementById('totalDebt').innerText = '$' + totalCalle.toFixed(2);
 
-        sales.unshift(newSale); // Agregar al principio
-        saveSalesData();
-        renderSales();
-        
-        document.getElementById('buyer').value = '';
-        document.getElementById('qty').value = 1;
-    });
-
-    function saveSalesData() {
-        localStorage.setItem('ventasAppDatos', JSON.stringify(sales));
-    }
-
-    function markAsPaid(id) {
-        const sale = sales.find(s => s.id === id);
-        if (sale) {
-            sale.isPaid = true;
-            saveSalesData();
-            renderSales();
-        }
-    }
-
-    function deleteSale(id) {
-        if(confirm('¿Seguro que querés borrar esta venta?')) {
-            sales = sales.filter(s => s.id !== id);
-            saveSalesData();
-            renderSales();
-        }
-    }
-
-    // Dibujar la interfaz de ventas
-    function renderSales() {
-        const salesList = document.getElementById('salesList');
-        salesList.innerHTML = '';
-        let totalProfit = 0;
-        let totalDebt = 0;
-
-        sales.forEach(sale => {
-            if (sale.isPaid) {
-                totalProfit += sale.profit;
-            } else {
-                totalDebt += sale.total;
-            }
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><strong>${sale.buyer}</strong><br><small>${sale.date}</small></td>
-                <td>${sale.qty}x ${sale.productName}<br><b>$${sale.total}</b></td>
-                <td>
-                    <span class="${sale.isPaid ? 'badge-pagado' : 'badge-deuda'}">
-                        ${sale.isPaid ? 'Pagado' : 'Debe'}
-                    </span>
-                </td>
-                <td>
-                    ${!sale.isPaid ? `<button class="btn-pay" onclick="markAsPaid(${sale.id})">Cobrar</button>` : ''}
-                    <button class="btn-delete" onclick="deleteSale(${sale.id})">🗑️</button>
-                </td>
-            `;
-            salesList.appendChild(tr);
+        // Agrupar por cliente
+        const porCliente = {};
+        pendientes.forEach(c => {
+            if (!porCliente[c.cliente]) porCliente[c.cliente] = [];
+            porCliente[c.cliente].push(c);
         });
 
-        document.getElementById('totalProfit').innerText = '$' + totalProfit.toFixed(2);
-        document.getElementById('totalDebt').innerText = '$' + totalDebt.toFixed(2);
+        const clientesContainer = document.getElementById('clientesContainer');
+        clientesContainer.innerHTML = '';
+
+        const nombresClientes = Object.keys(porCliente);
+        if (nombresClientes.length === 0) {
+            clientesContainer.innerHTML = '<p style="text-align: center; color: #6b7280;">No hay deudas pendientes en este momento. ¡Todo al día!</p>';
+            return;
+        }
+
+        nombresClientes.forEach(cliente => {
+            const items = porCliente[cliente];
+            let subtotalCliente = 0;
+
+            let htmlItems = '';
+            items.forEach(item => {
+                subtotalCliente += parseFloat(item.monto);
+                const fechaCorta = new Date(item.fecha).toLocaleDateString();
+                htmlItems += `
+                    <tr>
+                        <td><small>${fechaCorta}</small><br>${item.detalle}</td>
+                        <td><strong>$${item.monto}</strong></td>
+                        <td><button class="btn-delete" onclick="borrarItem(${item.id})">❌</button></td>
+                    </tr>
+                `;
+            });
+
+            clientesContainer.innerHTML += `
+                <div class="cliente-card">
+                    <div class="cliente-header">
+                        <div>
+                            <strong style="font-size: 18px; color: #1e3a8a;">👤 ${cliente}</strong><br>
+                            <span style="color: var(--danger); font-weight: bold; font-size: 16px;">Debe total: $${subtotalCliente.toFixed(2)}</span>
+                        </div>
+                        <button class="btn-pay" onclick="cobrarCliente('${cliente}')">💰 Cobrar Mes</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Día / Detalle</th>
+                                <th>Monto</th>
+                                <th>Quitar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${htmlItems}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        });
     }
 
-    // Iniciar la app cargando todo
-    renderProducts();
-    renderSales();
+    cargarDatos();
 </script>
 
 </body>
