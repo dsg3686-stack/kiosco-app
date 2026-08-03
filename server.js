@@ -4,13 +4,14 @@ const path = require('path');
 const app = express();
 
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
-// Creamos las tablas necesarias para productos y clientes/fiados
+// Crear tablas en la base de datos si no existen
 pool.query(`
   CREATE TABLE IF NOT EXISTS productos (
     id SERIAL PRIMARY KEY,
@@ -19,121 +20,91 @@ pool.query(`
     precio DECIMAL(10,2)
   );
 
-  CREATE TABLE IF NOT EXISTS clientes (
+  CREATE TABLE IF NOT EXISTS cuentas_clientes (
     id SERIAL PRIMARY KEY,
-    nombre VARCHAR(100)
-  );
-
-  CREATE TABLE IF NOT EXISTS fiados (
-    id SERIAL PRIMARY KEY,
-    cliente_id INT REFERENCES clientes(id),
+    cliente VARCHAR(100),
     detalle VARCHAR(255),
     monto DECIMAL(10,2),
-    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    pagado BOOLEAN DEFAULT FALSE
   );
 `).catch(err => console.error("Error al crear tablas:", err));
 
-app.get('/productos', async (req, res) => {
+// 1. Obtener productos y cuentas de clientes
+app.get('/api/datos', async (req, res) => {
   try {
-    const result = await pool.query('SELECT nombre, costo, precio, (precio - costo) AS ganancia FROM productos');
-    
-    let html = `
-      <!DOCTYPE html>
-      <html lang="es">
-      <head>
-          <meta charset="UTF-8">
-          <title>Lista de Productos - Kiosco</title>
-          <style>
-              body {
-                  font-family: Arial, sans-serif;
-                  background-color: #f4f6f9;
-                  margin: 0;
-                  padding: 40px;
-              }
-              .container {
-                  max-width: 600px;
-                  margin: 0 auto;
-                  background-color: #ffffff;
-                  padding: 30px;
-                  border-radius: 10px;
-                  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-              }
-              h2 {
-                  color: #2c3e50;
-                  text-align: center;
-                  margin-bottom: 20px;
-              }
-              ul {
-                  list-style-type: none;
-                  padding: 0;
-              }
-              li {
-                  background-color: #f8f9fa;
-                  padding: 12px 15px;
-                  margin-bottom: 10px;
-                  border-left: 5px solid #27ae60;
-                  border-radius: 4px;
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-              }
-              .nombre {
-                  font-weight: bold;
-                  color: #34495e;
-              }
-              .detalles {
-                  color: #7f8c8d;
-                  font-size: 14px;
-              }
-              .ganancia {
-                  color: #27ae60;
-                  font-weight: bold;
-              }
-              .btn-volver {
-                  display: block;
-                  text-align: center;
-                  margin-top: 25px;
-                  color: #2980b9;
-                  text-decoration: none;
-                  font-weight: bold;
-              }
-              .btn-volver:hover {
-                  text-decoration: underline;
-              }
-          </style>
-      </head>
-      <body>
-          <div class="container">
-              <h2>Lista de Productos</h2>
-              <ul>
-    `;
-
-    if (result.rows.length === 0) {
-      html += '<p style="text-align: center; color: #7f8c8d;">No hay productos cargados todavía.</p>';
-    } else {
-      result.rows.forEach(p => {
-        html += `
-          <li>
-              <span class="nombre">${p.nombre}</span>
-              <span class="detalles">Costo: $${p.costo} | Precio: $${p.precio}</span>
-              <span class="ganancia">Ganancia: $${p.ganancia}</span>
-          </li>
-        `;
-      });
-    }
-
-    html += `
-              </ul>
-              <a href="/" class="btn-volver">Volver a cargar producto</a>
-          </div>
-      </body>
-      </html>
-    `;
-
-    res.send(html);
+    const productos = await pool.query('SELECT * FROM productos');
+    const cuentas = await pool.query('SELECT * FROM cuentas_clientes ORDER BY fecha DESC');
+    res.json({ productos: productos.rows, cuentas: cuentas.rows });
   } catch (err) {
     console.error(err);
-    res.send('Error al obtener productos');
+    res.status(500).json({ error: 'Error al obtener datos' });
+  }
+});
+
+// 2. Guardar nuevo producto
+app.post('/api/productos', async (req, res) => {
+  const { nombre, costo, precio } = req.body;
+  try {
+    const nuevo = await pool.query(
+      'INSERT INTO productos (nombre, costo, precio) VALUES ($1, $2, $3) RETURNING *',
+      [nombre, costo, precio]
+    );
+    res.json(nuevo.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al guardar producto' });
+  }
+});
+
+// 3. Borrar producto
+app.delete('/api/productos/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM productos WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al borrar producto' });
+  }
+});
+
+// 4. Registrar un fiado/consumo diario para un cliente
+app.post('/api/cuentas', async (req, res) => {
+  const { cliente, detalle, monto } = req.body;
+  try {
+    const nuevo = await pool.query(
+      'INSERT INTO cuentas_clientes (cliente, detalle, monto, pagado) VALUES ($1, $2, $3, FALSE) RETURNING *',
+      [cliente, detalle, monto]
+    );
+    res.json(nuevo.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al registrar consumo' });
+  }
+});
+
+// 5. Marcar la cuenta de un cliente como pagada (o borrar sus deudas del mes)
+app.put('/api/cuentas/pagar/:cliente', async (req, res) => {
+  const { cliente } = req.params;
+  try {
+    await pool.query('UPDATE cuentas_clientes SET pagado = TRUE WHERE cliente = $1', [cliente]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al registrar pago' });
+  }
+});
+
+// 6. Borrar un registro individual de la cuenta
+app.delete('/api/cuentas/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM cuentas_clientes WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al borrar registro' });
   }
 });
 
@@ -141,29 +112,5 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.post('/guardar-producto', async (req, res) => {
-  const { nombre, costo, precio } = req.body;
-  try {
-    await pool.query(
-      'INSERT INTO productos (nombre, costo, precio) VALUES ($1, $2, $3)',
-      [nombre, costo, precio]
-    );
-    res.send('¡Producto guardado con éxito en la base de datos!');
-  } catch (err) {
-    console.error("DETALLE DEL ERROR:", err);
-    res.send('Error al guardar el producto: ' + err.message);
-  }
-});
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
-
-app.get('/borrar-todo', async (req, res) => {
-    try {
-        await pool.query('DELETE FROM productos');
-        res.send('¡Listo! Todos los productos de prueba fueron borrados.');
-    } catch (err) {
-        console.error(err);
-        res.send('Hubo un error al borrar los datos.');
-    }
-});
