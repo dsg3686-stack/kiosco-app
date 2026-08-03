@@ -10,7 +10,16 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// Esto muestra tu formulario cuando entrás a la página principal
+// Crear la tabla productos automáticamente al iniciar
+pool.query(`
+  CREATE TABLE IF NOT EXISTS productos (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100),
+    costo DECIMAL(10,2),
+    precio DECIMAL(10,2)
+  )
+`).catch(err => console.error("Error al crear tabla:", err));
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
