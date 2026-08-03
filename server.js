@@ -10,14 +10,28 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+// Creamos las tablas necesarias para productos y clientes/fiados
 pool.query(`
   CREATE TABLE IF NOT EXISTS productos (
     id SERIAL PRIMARY KEY,
     nombre VARCHAR(100),
     costo DECIMAL(10,2),
     precio DECIMAL(10,2)
-  )
-`).catch(err => console.error("Error al crear tabla:", err));
+  );
+
+  CREATE TABLE IF NOT EXISTS clientes (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100)
+  );
+
+  CREATE TABLE IF NOT EXISTS fiados (
+    id SERIAL PRIMARY KEY,
+    cliente_id INT REFERENCES clientes(id),
+    detalle VARCHAR(255),
+    monto DECIMAL(10,2),
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+`).catch(err => console.error("Error al crear tablas:", err));
 
 app.get('/productos', async (req, res) => {
   try {
